@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { apiUrl } from "../../lib/api";
 import {
   LineChart,
   Line,
@@ -98,9 +99,9 @@ export default function Analytics({ onTabChange, analyticsParams, profile, portf
     const headers = { "Content-Type": "application/json" };
 
     Promise.all([
-      fetch("/api/analytics/montecarlo", { method: "POST", headers, body }).then((r) => r.json()),
-      fetch("/api/analytics/scenarios", { method: "POST", headers, body }).then((r) => r.json()),
-      fetch("/api/analytics/stress", { method: "POST", headers, body }).then((r) => r.json()),
+      fetch(apiUrl("/api/analytics/montecarlo"), { method: "POST", headers, body }).then((r) => r.json()),
+      fetch(apiUrl("/api/analytics/scenarios"), { method: "POST", headers, body }).then((r) => r.json()),
+      fetch(apiUrl("/api/analytics/stress"), { method: "POST", headers, body }).then((r) => r.json()),
     ])
       .then(([mc, sc, stress]) => {
         setMcData(mc.data ?? []);

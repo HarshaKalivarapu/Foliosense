@@ -1,5 +1,6 @@
 import type { PortfolioExplanation } from "../../types/ai";
 import type { UserProfile } from "../../types/profile";
+import { apiUrl } from "../../lib/api";
 
 type Allocation = {
   ticker: string;
@@ -19,7 +20,7 @@ export async function fetchPortfolioExplanation(args: {
   profile: UserProfile | null | undefined;
   recommendation: RecommendationPayload;
 }): Promise<PortfolioExplanation> {
-  const res = await fetch("http://localhost:8080/api/ai/portfolio-explanation", {
+  const res = await fetch(apiUrl("/api/ai/portfolio-explanation"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
