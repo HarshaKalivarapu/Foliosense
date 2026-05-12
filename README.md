@@ -1,192 +1,124 @@
-# GS-ELS-2026
-Our project for Goldman Sachs ELS program
+# Foliosense — GS ELS 2026
 
-This repo is a with:
-- **backend/**: Spring Boot REST API (Java)
-- **frontend/**: React (Vite + TypeScript) web app
+AI-explained portfolio recommendations with risk-aware allocation, CAPM-based return projections, and Monte Carlo / stress-test analytics.
 
-The current implementation is a **clean scaffold**:
-- Frontend collects inputs (tickers, risk tolerance, horizon, amount) and calls the backend.
-- Backend returns a **stub recommendation** (currently equal-weight allocation). This will be replaced with real optimization + market data + AI explanation.
+> Built for the **Goldman Sachs Emerging Leaders Series 2026**.
 
----
+## Live
 
-## Repo Structure
-GS-ELS-2026/
-    backend/ # Spring Boot API
-    frontend/ # React UI (Vite)
-    README.md
+- **Web app:** _your Vercel URL here_
+- **API health check:** https://gs-els-2026-mmx3.onrender.com/api/health
 
-## Prerequisites
+## What it does
 
-### Backend
-- **Java**: JDK 17+ (recommended: 21 if you have it)
-- (Optional) Maven installed — not required if you use the included Maven Wrapper (`./mvnw`)
+A user enters their financial profile (age, income, savings, risk tolerance, life goals) plus a set of tickers and an investment horizon. The backend pulls live market data from Yahoo Finance, computes expected returns via CAPM, models taxes and expense ratios, then runs Monte Carlo simulations and historical stress tests. An OpenAI-powered service generates plain-English explanations of *why* a given allocation makes sense for that user — and lets them highlight any part of the portfolio to ask follow-up questions.
 
-### Frontend
-- **Node.js**: 18+ (recommended: 20+)
-- npm comes with Node
+## Features
 
-Check versions:
-```bash
-java -version
-node -v
-npm -v
+- Risk-tolerance-aware portfolio presets
+- CAPM-based expected return calculations using live market data
+- Tax and expense-ratio modeling on projected returns
+- Monte Carlo simulation, scenario analysis, and historical stress tests
+- AI explanations of portfolio decisions (OpenAI `gpt-5-nano`)
+- Interactive "highlight & ask" — select any portion of a chart or recommendation to get a contextual AI answer
+- User accounts via Clerk
+
+## Tech stack
+
+| Layer    | Tech                                |
+|----------|-------------------------------------|
+| Frontend | React 19, Vite 7, TypeScript        |
+| Backend  | Spring Boot 4, Java 21              |
+| Auth     | Clerk                               |
+| Storage  | Supabase (user profiles)            |
+| Market data | Yahoo Finance (public, unauthenticated) |
+| AI       | OpenAI Responses API                |
+| Hosting  | Vercel (frontend) · Render (backend, Docker) |
+
+## Repo layout
+
+```
+foliosense/
+├── backend/    Spring Boot REST API
+├── frontend/   React + Vite UI
+└── README.md
 ```
 
-## Quickstart (Local Development)
+## Local development
 
-### 1) Start the backend (Spring Boot API)
+### Prerequisites
+- Java 21+ (17 also works)
+- Node 20+
+- An OpenAI API key (optional — non-AI features work without it)
 
-```bash
+### Run it
+
+**Terminal 1 — backend:**
+```powershell
 cd backend
-./mvnw spring-boot:run
+$env:OPENAI_API_KEY = "sk-..."   # optional, only needed for AI features
+.\mvnw.cmd spring-boot:run
+```
+Backend listens on http://localhost:8080. Verify with:
+```powershell
+curl http://localhost:8080/api/health
 ```
 
-Backend will start on: http://localhost:8080
-Quick test: curl http://localhost:8080/api/health
-Expected: {"status":"ok"}
-
-
-## 2) Start the frontend (React + Vite)
-
-Open a new terminal:
-
-```bash
+**Terminal 2 — frontend:**
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
+Open http://localhost:5173. The Vite dev server proxies `/api/*` to the backend, so no CORS setup is needed locally.
 
-Frontend will start on: http://localhost:5173 (Vite default)
+## Environment variables
 
-## 3) Create an account (Optional)
+### Backend
+| Variable          | Required for | Notes                                |
+|-------------------|--------------|--------------------------------------|
+| `OPENAI_API_KEY`  | AI endpoints | OpenAI secret key                    |
+| `PORT`            | hosting      | Auto-set by Render; defaults to 8080 |
 
-You can setup an account with Clerk Auth using your personal email, put in your preferences and your account will be created and stored in our backend database.
+### Frontend
+| Variable                       | Required for       | Notes                                                       |
+|--------------------------------|--------------------|-------------------------------------------------------------|
+| `VITE_API_URL`                 | production         | Backend URL (e.g. `https://...onrender.com`). Omit for local dev — Vite proxy handles it. |
+| `VITE_CLERK_PUBLISHABLE_KEY`   | always             | Clerk auth (public key)                                     |
+| `VITE_SUPABASE_URL`            | always             | Supabase project URL                                        |
+| `VITE_SUPABASE_ANON_KEY`       | always             | Supabase anon (public) key                                  |
 
-## 4) Additional AI Features (Optional)
+## API endpoints
 
-You can replace the dummy API key (openai.api.key) with your own OpenAPI key in the backend/src/main/resources/application.properties file.
+All paths are relative to the backend root.
 
-# How Frontend ↔ Backend Communication Works
+| Method | Path                            | Purpose                                       |
+|--------|---------------------------------|-----------------------------------------------|
+| GET    | `/api/health`                   | Liveness probe                                |
+| POST   | `/api/portfolio/recommend`      | Compute allocation, returns, taxes, fees      |
+| POST   | `/api/presets/recommend`        | Risk-profile-based preset selection           |
+| POST   | `/api/analytics/montecarlo`     | Monte Carlo simulation                        |
+| POST   | `/api/analytics/scenarios`      | Pre-defined scenario projections              |
+| POST   | `/api/analytics/stress`         | Historical stress events                      |
+| POST   | `/api/ai/portfolio-explanation` | AI explanation of recommended portfolio       |
+| POST   | `/api/ai/explain-selection`     | AI answer to a user-highlighted question      |
+| GET    | `/api/funds`                    | Available fund metadata                       |
 
-## Request Flow
+## Backend architecture
 
-1.  User enters:
-    -   tickers (e.g., AAPL MSFT VTI)
-    -   risk tolerance (0..1 slider)
-    -   horizon years
-    -   investment amount
-2.  Frontend sends a POST request to:
+Layered Spring Boot:
+- `controller/` — HTTP entrypoints
+- `service/` — business logic (allocation, analytics, market data, AI)
+- `dto/` — request/response payloads
+- `config/` — CORS and other configuration
 
-POST /api/portfolio/recommend
+Note: the Java package is still `com.gs.mutualfundcalc` from the project's pre-rename name. Not user-facing; left alone to avoid touching every file.
 
-3.  Backend returns JSON with:
-    -   suggested allocations (list of { ticker, weight })
-    -   expected return (stub value right now)
-    -   volatility (stub value right now)
-    -   explanation text (stub text right now)
+## Deployment
 
+- **Frontend → Vercel:** root directory `frontend/`, framework Vite, auto-deploys on push to `main`.
+- **Backend → Render:** root directory `backend/`, runtime Docker (uses the included `Dockerfile`). Set `OPENAI_API_KEY` in Render's environment variables.
 
-## Portfolio Recommendation (Stub)
+## Team
 
-POST /api/portfolio/recommend
-
-Example request:
-
-```bash
-curl -X POST http://localhost:8080/api/portfolio/recommend\
--H "Content-Type: application/json"\
--d '{ "tickers": \["AAPL", "MSFT", "VTI"\], "riskTolerance": 0.5,
-"horizonYears": 5, "investmentAmount": 10000 }'
-```
-
-Example response:
-
-{ "allocations": \[ { "ticker": "AAPL", "weight": 0.3333333333 }, {
-"ticker": "MSFT", "weight": 0.3333333333 }, { "ticker": "VTI", "weight":
-0.3333333333 } \], "expectedReturn": 0.08, "volatility": 0.15,
-"explanation": "Stub recommendation: equal-weight allocation..." }
-
-# Backend Overview (Spring Boot)
-
-The backend uses a layered architecture:
-
--   controller/ --- HTTP endpoints
--   service/ --- business logic
--   dto/ --- request/response payloads
-
-Java structure:
-
-backend/src/main/java/com/gs/mutualfundcalc/
-
--   MutualfundcalcApplication.java\
--   controller/
-    -   HealthController.java\
-    -   PortfolioController.java\
--   dto/
-    -   PortfolioRequest.java\
-    -   PortfolioRecommendation.java\
--   service/
-    -   PortfolioService.java
-
-# What Each Java File Does
-
-MutualfundcalcApplication.java\
-Entry point of the Spring Boot app. Enables auto-configuration and
-starts the embedded server.
-
-HealthController.java\
-Exposes GET /api/health to verify the backend is running.
-
-PortfolioController.java\
-Handles POST /api/portfolio/recommend.\
-Receives PortfolioRequest and returns PortfolioRecommendation.
-
-PortfolioRequest.java\
-Defines the structure of incoming frontend requests: - tickers
-(List`<String>`{=html}) - riskTolerance (double) - horizonYears (int) -
-investmentAmount (double)
-
-PortfolioRecommendation.java\
-Defines backend response structure: - allocations - expectedReturn -
-volatility - explanation
-
-PortfolioService.java\
-Contains business logic.\
-Currently returns equal-weight allocation as a stub.\
-Will later include optimization, risk modeling, and AI explanation.
-
-# Frontend Overview (React + Vite + TypeScript)
-
-Key files:
-
-frontend/src/App.tsx\
-Main UI and API call logic.
-
-frontend/src/main.tsx\
-React entry point.
-
-frontend/vite.config.ts\
-Dev server configuration including proxy.
-
-frontend/package.json\
-Dependencies and scripts.
-
-# Running Scripts
-
-From frontend/:
-
-npm run dev --- Start dev server
-npm run build --- Build production bundle
-npm run preview --- Preview production build
-
-
-# Roadmap
-
-1.  Replace stub allocation with real allocation logic
-2.  Add market data client layer
-3.  Add caching
-4.  Add persistence only if needed
-5.  Add backtesting dashboard
-6.  Integrate OpenAI explanation service
+Goldman Sachs Emerging Leaders Series — Spring 2026 cohort.
