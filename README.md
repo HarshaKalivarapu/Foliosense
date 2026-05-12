@@ -6,7 +6,7 @@ AI-explained portfolio recommendations with risk-aware allocation, CAPM-based re
 
 ## Live
 
-- **Web app:** _your Vercel URL here_
+- **Web app:** https://gs-els-2026.vercel.app
 - **API health check:** https://gs-els-2026-mmx3.onrender.com/api/health
 
 ## What it does
